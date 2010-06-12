@@ -3,6 +3,8 @@ require 'json'
 
 module CouchDB
   extend self
+  $realstdout = $stdout
+  $stdout = $stderr
   
   def loop
     while command = read do
@@ -16,8 +18,8 @@ module CouchDB
   end
   
   def write(response)
-    $stdout.puts response.to_json
-    $stdout.flush
+    $realstdout.puts response.to_json
+    $realstdout.flush
   end
   
   def run(command=[])
