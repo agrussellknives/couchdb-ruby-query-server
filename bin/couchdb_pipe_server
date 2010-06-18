@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+# create the pipe and execute the view server if it's not already running
+
+dir = File.dirname(__FILE__)
+`mkfifo -m 777 #{dir}/qs_pipe_in` unless File.exist?("#{dir}/qs_pipe_in")
+`mkfifo -m 777 #{dir}/qs_pipe_out` unless File.exist?("#{dir}/qs_pipe_out")
+$pipe_in = File.open("#{dir}/qs_pipe_in", 'w+')
+$pipe_out = File.open("#{dir}/qs_pipe_out",'r+')
+$pipe_in.sync
+$pipe_out.sync
+$stdout.sync
+$stdin.sync
+#unless File.exist?('/tmp/couchdb_view_server.pid')
+#  j = fork do
+#    exec `#{File.dirname(__FILE__)}/couchdb_view_server --pipe --debug --unsafe`
+#  end
+#    v = $pipe_out.gets
+#    unless v =~ /["log","\"started in pipe mode\""]/
+#     $stdout.puts "['fatal','could not start view server']"
+#      $stdout.flush
+#     Process.exit()
+#    end
+#  Process.detach(j)
+#end
+
+get_input = Fiber.new do
+  loop do
+    begin
+      $pipe_in << $stdin.read_nonblock(100000)
+    rescue EOFError
+      # exit when stdin is over.
+      exit()
+    end
+    $pipe_in.flush
+    Fiber.yield
+  end
+end
+
+get_output = Fiber.new do
+  loop do
+    begin
+      $stdout << $pipe_out.read_nonblock(100000)
+    rescue Errno::EPIPE
+      exit()
+    end
+    $stdout.flush
+    Fiber.yield
+  end
+end
+
+
+loop do
+  
+  read_from, write, error = select([$stdin,$pipe_out],nil,nil,nil)
+  
+  
+  if read_from.include? $stdin then
+   $stderr.puts 'stdin ready'
+   get_input.resume
+  end
+  
+  
+  if read_from.include? $pipe_out then
+    $stderr.puts 'pipe out ready'
+    get_output.resume
+  end
+  
+end

@@ -3,17 +3,17 @@ module CouchDB
     class HaltedFunction < StandardError; end
 
     extend self
-    
-    DOCUMENTS = {}
+
+    @@documents = {}
 
     def handle(command=[])
       case cmd = command.shift
       when 'new'
         id, ddoc = command[0], command[1]
-        DOCUMENTS[id] = ddoc
+        @@documents[id] = ddoc
         true
       else
-        doc = DOCUMENTS[cmd]
+        doc = @@documents[cmd]
         action, name = command.shift
         func = name ? doc[action][name] : doc[action]
         func = Sandbox.make_proc(func)
@@ -22,8 +22,11 @@ module CouchDB
     end
     
     def filters(func, design_doc, docs_and_req)
+      #TODO update to use runner...
       docs, req = docs_and_req.first
-      results = docs.map{|doc| !! func.call(doc, req) }
+      results = docs.map do |doc| 
+        !!CouchDB::Runner.new(func, design_doc).run(doc, req)
+      end
       [true, results]
     end
     

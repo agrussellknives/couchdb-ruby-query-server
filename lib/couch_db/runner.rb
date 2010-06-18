@@ -2,6 +2,7 @@ module CouchDB
   class Runner
    
     class HaltedFunction < StandardError; end
+    class FatalError < StandardError; end
 
     attr_accessor :error
 
@@ -14,17 +15,25 @@ module CouchDB
       begin
         results = instance_exec *args, &@func
       rescue HaltedFunction => e
+        $error.puts(e) if CouchDB.debug
         @error
       end
     end
 
     def throw(error, *message)
-      @error = if [:error, :fatal, "error", "fatal"].include?(error)
-        ["error", message].flatten
-      else
-        {error.to_s => message.join(', ')}
+      begin
+        @error = if [:error, :fatal, "error", "fatal"].include?(error)
+          errorMessage = ["error", message].flatten
+          raise FatalError, errorMessage if [:fatal,"fatal"].include?(error)
+          errorMessage
+        else
+          {error.to_s => message.join(', ')}
+        end
+        raise HaltedFunction
+      rescue FatalError => e
+        CouchDB.write(e.message)
+        CouchDB.exit
       end
-      raise HaltedFunction
     end
 
     def log(thing)

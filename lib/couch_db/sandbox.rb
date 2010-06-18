@@ -3,7 +3,7 @@ module CouchDB
     extend self
     
     def safe
-      @safe ||= false
+      @safe ||= true
     end
     
     def safe=(bool)
@@ -17,14 +17,14 @@ module CouchDB
           value = ["error", "compilation_error", "expression does not eval to a proc: #{string}"]
         end
       rescue SyntaxError => e
-        value = ["error", "compilation_error", "#{e.class.name}: #{e.message}"]
+        raise e, value
       end
       value
     end
     
     def run(string)
       if safe
-        lambda{ $SAFE=4; eval(string) }.call
+        lambda { $SAFE=4; eval(string) }.call
       else
         eval(string)
       end

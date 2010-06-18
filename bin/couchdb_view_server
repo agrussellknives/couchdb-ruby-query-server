@@ -1,16 +1,113 @@
 #!/usr/bin/env ruby
 
 $:.unshift File.dirname(__FILE__) + "/../lib"
+
 require 'couch_db'
-begin
-  require 'json'
-rescue LoadError
-  require 'rubygems'
-  retry
+
+def parse_args
+  
+  require 'optparse'
+
+  options = {}
+  default = {
+    :debug => false,
+    :stop => false,
+    :wait => false,
+    :stderr_to => nil,
+    :unsafe => false,
+    :pipe => false
+  }
+  
+  
+  optparse = OptionParser.new do |opts|
+
+    opts.banner = "Usage: add the path this couchdb_view_server in your couchdb.ini file, and specify options there."
+    opts.separator ""
+    opts.separator "Using any of the debug settings will slow the view server down considerably."
+    opts.separator "Specific Options:"
+
+    options = default.clone
+
+    opts.on('-f','--file FILENAME','Output STDERR to file FILENAME. Ignored if --debug and --unsafe are not given') do |file|
+      options[:stderr_to] = file
+    end
+
+    opts.on('--debug','-u','Enable debugging of Query Server Functions.  Ignored if --unsafe is not given.') do
+      options[:debug] = true
+    end
+
+    opts.on('--stop-on-error','-s','Wait for a debugger to connect if an exception is thrown.  Ignored if --debug is not given') do
+      options[:stop] = true
+    end
+
+    opts.on('--wait','-w','Wait for debugger connection on startup. Ignored if --debug is not given.') do
+      options[:wait] = true
+    end
+
+    opts.on('--unsafe',"Don't sandbox Query Server Functions. DANGEROUS.") do
+      options[:unsafe] = true
+    end
+    
+    opts.on('--pipe',"Pipe mode, leave the server running even if it should nominally quit.  You must create the pipe first!") do
+      options[:pipe] = true
+    end
+
+    opts.on('-h','--help','Display this screen') do
+      puts opts
+      exit
+    end
+
+
+  end
+
+
+
+  begin
+    optparse.parse!(ARGV)
+    dependent = {
+        :debug => {:unsafe => true},
+        :wait => {:debug => true, :unsafe => true},
+        :stop => {:debug => true, :unsafe => true},
+        :stderr_to => {:debug => true, :unsafe => true}
+    }
+
+    check_opt = options.clone
+
+
+    check_opt.each do |opt,val|
+      next if not dependent.key?(opt)
+      arr = dependent[opt].select do |depopt,ev|
+        true if options[depopt] == ev
+      end
+      options[opt] = (arr.size == dependent[opt].size ? options[opt] : default[opt])
+    end
+
+    options.each_pair do |opt,val|
+      next unless val #the default value of everything is false, so if the val is false, we can skip it.
+      case opt
+        when :debug 
+          CouchDB.debug = true
+          require 'ruby-debug'
+          require 'eval-debugger'
+        when :stop 
+          CouchDB.stop_on_error = true
+        when :wait 
+          CouchDB.wait_for_connection = true
+        when :stderr_to 
+          CouchDB.stderr_to = val
+        when :unsafe
+          CouchDB::Sandbox.safe = false
+        when :pipe
+          CouchDB.pipe = true
+          CouchDB.pipe_dir = File.dirname(__FILE__)
+      end
+    end
+
+  rescue => e
+    puts e
+    Process.exit
+  end
 end
 
-if ARGV.include?("--safe")
-  CouchDB::Sandbox.safe = true
-end
-
+parse_args if ARGV.size > 0
 CouchDB.loop
