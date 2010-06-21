@@ -55,13 +55,11 @@ loop do
   
   
   if read_from.include? $stdin then
-   $stderr.puts 'stdin ready'
-   get_input.resume
+    get_input.resume
   end
   
   
   if read_from.include? $pipe_out then
-    $stderr.puts 'pipe out ready'
     get_output.resume
   end
   

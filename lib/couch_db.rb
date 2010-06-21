@@ -32,17 +32,13 @@ module CouchDB
     end
     
     while command = read do
-      val = run(command)
-      $error << " returned #{val}"
-      $error.puts "\n\n\n"
-      write val
+      write run(command)
     end
   end
   
   def read
     begin
       foo = $stdin.gets
-      $error.puts "Got #{foo}"
       JSON.parse foo if foo
     rescue JSON::ParserError => e
       #an unparseable command - make "run" go fatal.
@@ -57,10 +53,15 @@ module CouchDB
   end
   
   def exit(type = nil,msg = nil)
+    $error << "exit was called with ##{type} #{msg}"
     write([type,msg]) if type || msg
     Process.exit() unless @pipe
     # unless we're running in pipe_mode, this won't be reached
     @play_dead = true
+    View.functions = []
+    Design.documents = {}
+    $pipe_in.close
+    $pipe_out.close
   end
 
   def write(response)
@@ -89,7 +90,6 @@ module CouchDB
         # this is actually a fatal.
         exit('error','unknown_command')
         # you don't get here unless you're in pipe mode
-        ['die']
       end
     rescue => e
       $error.puts e.message if @debug
