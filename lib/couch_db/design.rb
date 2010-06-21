@@ -5,6 +5,10 @@ module CouchDB
     extend self
 
     @@documents = {}
+    
+    def self.documents
+      @@documents
+    end
 
     def handle(command=[])
       case cmd = command.shift
@@ -22,7 +26,6 @@ module CouchDB
     end
     
     def filters(func, design_doc, docs_and_req)
-      #TODO update to use runner...
       docs, req = docs_and_req.first
       results = docs.map do |doc| 
         !!CouchDB::Runner.new(func, design_doc).run(doc, req)

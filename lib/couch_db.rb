@@ -8,41 +8,22 @@ module CouchDB
   $stdout = $stderr
   $error = $stderr
 
-  attr_accessor :debug, :wait_for_connection, :stop_on_error, :pipe, :pipe_dir
+  attr_accessor :debug, :wait_for_connection, :stop_on_error
   
   def stderr_to=(val)
     $error = File.open(val,'wa')
   end
 
   def loop
-      
-    if @pipe then
-      `mkfifo -m 777 #{@pipe_dir}/qs_pipe_in` unless File.exist?("#{@pipe_dir}/qs_pipe_in")
-      `mkfifo -m 777 #{@pipe_dir}/qs_pipe_out` unless File.exist?("#{@pipe_dir}/qs_pipe_out")
-      $pipe_in = File.open("#{@pipe_dir}/qs_pipe_in",'r+')
-      $pipe_out = File.open("#{@pipe_dir}/qs_pipe_out",'w+')
-      File.open('/tmp/couchdb_view_server.pid','w') do |f|
-        f.write(Process.pid)
-      end
-      $pipe_in.sync = true
-      $pipe_out.sync = true
-      $stdin = $pipe_in
-      $realstdout = $pipe_out
-      log("started in pipe mode")
-    end
     
     while command = read do
-      val = run(command)
-      $error << " returned #{val}"
-      $error.puts "\n\n\n"
-      write val
+      write run(command)
     end
   end
   
   def read
     begin
       foo = $stdin.gets
-      $error.puts "Got #{foo}"
       JSON.parse foo if foo
     rescue JSON::ParserError => e
       #an unparseable command - make "run" go fatal.
@@ -58,9 +39,7 @@ module CouchDB
   
   def exit(type = nil,msg = nil)
     write([type,msg]) if type || msg
-    Process.exit() unless @pipe
-    # unless we're running in pipe_mode, this won't be reached
-    @play_dead = true
+    Process.exit()
   end
 
   def write(response)
@@ -88,14 +67,12 @@ module CouchDB
       else
         # this is actually a fatal.
         exit('error','unknown_command')
-        # you don't get here unless you're in pipe mode
-        ['die']
       end
     rescue => e
       $error.puts e.message if @debug
       debugger if @stop_on_error
       write(e.message)
-      false
+      e.message
     end
   end
   

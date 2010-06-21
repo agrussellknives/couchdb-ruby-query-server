@@ -2,8 +2,12 @@ module CouchDB
   module Sandbox
     extend self
     
+    def initialize
+      @safe = true
+    end
+    
     def safe
-      @safe ||= true
+      @safe
     end
     
     def safe=(bool)
@@ -17,7 +21,7 @@ module CouchDB
           value = ["error", "compilation_error", "expression does not eval to a proc: #{string}"]
         end
       rescue SyntaxError => e
-        raise e, value
+        value = ["error","compilation_error","#{e.class.name}: #{e.message}"]
       end
       value
     end

@@ -3,11 +3,19 @@ module CouchDB
     extend self
   
     @@functions = []
+    
+    def self.functions
+      @@functions
+    end
 
     def add_map_function(funcstr)
       response = Sandbox.make_proc(funcstr)
-      @@functions.push(response)
-      true
+      if response.is_a?(Proc)
+        @@functions.push(response)
+        true
+      else
+        response
+      end
     end
 
     def reset

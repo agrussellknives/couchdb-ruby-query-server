@@ -48,10 +48,6 @@ def parse_args
       options[:unsafe] = true
     end
     
-    opts.on('--pipe',"Pipe mode, leave the server running even if it should nominally quit.  You must create the pipe first!") do
-      options[:pipe] = true
-    end
-
     opts.on('-h','--help','Display this screen') do
       puts opts
       exit
@@ -97,9 +93,6 @@ def parse_args
           CouchDB.stderr_to = val
         when :unsafe
           CouchDB::Sandbox.safe = false
-        when :pipe
-          CouchDB.pipe = true
-          CouchDB.pipe_dir = File.dirname(__FILE__)
       end
     end
 
