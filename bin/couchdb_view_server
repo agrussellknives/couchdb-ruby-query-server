@@ -48,6 +48,10 @@ def parse_args
       options[:unsafe] = true
     end
     
+    opts.on('-r FILE','require a file into the view server so it can be accessed within view functions') do |file|
+      require file
+    end
+      
     opts.on('-h','--help','Display this screen') do
       puts opts
       exit

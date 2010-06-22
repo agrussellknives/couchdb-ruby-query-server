@@ -2,16 +2,12 @@ module CouchDB
   module View
     extend self
   
-    @@functions = []
+    FUNCTIONS = []
     
-    def self.functions
-      @@functions
-    end
-
     def add_map_function(funcstr)
       response = Sandbox.make_proc(funcstr)
       if response.is_a?(Proc)
-        @@functions.push(response)
+        FUNCTIONS.push(response)
         true
       else
         response
@@ -19,11 +15,11 @@ module CouchDB
     end
 
     def reset
-      @@functions.clear
+      FUNCTIONS.clear
     end
 
     def map(doc)
-      @@functions.map do |func|
+      FUNCTIONS.map do |func|
         MapRunner.new(func).run(doc)
       end
     end

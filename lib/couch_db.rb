@@ -15,7 +15,6 @@ module CouchDB
   end
 
   def loop
-    
     while command = read do
       write run(command)
     end
