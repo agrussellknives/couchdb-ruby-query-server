@@ -28,3 +28,4 @@ end
 def create_ddoc(name, ddoc)
   CouchDB.run(["ddoc", "new", name, ddoc])
 end
+

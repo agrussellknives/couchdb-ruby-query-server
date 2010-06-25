@@ -29,18 +29,65 @@ Your design documents should look something like this:
             }
         }
     }
-    
-If you are going to allow people you may not necessarily trust "admin-level"
-access to your CouchDB install, such that they may create design documents and
-therefore upload their own code, you may sandbox user code with the `--safe`
-flag like so:
+ 
+By default, all code run within the view server is sandboxed. So that you can 
+allow people you may not necessarily trust "admin-level" access to your CouchDB
+install, such that they may create design documents and therefore upload their
+own code.  Certain features of the view server, such as debugging and logging
+errors to a file are not available unless the server is explicity run in --unsafe
+mode.
 
-    [query_servers]
-    ruby = /path/to/ruby -- /path/to/bin/couchdb_view_server --safe
-    
 All code is eval'd and run under a `$SAFE` level of 4 in this mode. If running
 in safe mode, it is preferred to run under Ruby 1.9, which has a vastly
 improved "trust/untrusted" model for security of objects.
+
+If you do want to run your views in unsafe mode flag like so:
+
+    [query_servers]
+    ruby = /path/to/ruby -- /path/to/bin/couchdb_view_server --unsafe
+    
+
+## Debugging
+
+It is possible to attach rdebug to the query server to debug the map, etc.
+functions as they are being run.  This requires the Ruby 1.9 compatible 
+ruby-debug gem.  The view server uses a specially patched version of the
+debugger in order to allow you to list, step through, and set breakpoints within
+eval'd lambda functions.
+
+In order for the debugger to attach, you must start the view server with at 
+least both the --unsafe and the --debug options.  The following options are also
+available.
+
+Usage: add the path of the couchdb_view_server in your couchdb.ini file, and
+specify options there.
+
+**Using any of the debug settings will slow the view server down considerably.**
+
+Specific Options:
+    -f, --file FILENAME              Output STDERR to file FILENAME. Ignored if
+ 									 --debug and --unsafe are not given
+    -u, --debug                      Enable debugging of Query Server Functions. 
+ 									 	Ignored if --unsafe is not given.
+    -s, --stop-on-error              Wait for a debugger to connect if an 
+										exception is thrown.  Ignored if --debug
+										is not given
+    -w, --wait                       Wait for debugger connection on startup. 
+										Ignored if --debug is not given.
+        --unsafe                     Don't sandbox Query Server Functions. 
+										DANGEROUS.
+    -r FILE                          require a file into the view server 
+										so it can be accessed within functions
+    -h, --help                       Display this screen
+
+
+## Requiring External Libraries
+
+Passing a -r FILE to the view server will require the file into the view server,
+so functions, constants, etc within it will be available to eval'd view functions.
+
+Requiring a file is done each time the server is executed (which can be frequently)
+so requiring large libraries may not be very wise.
 
 ## Notes
 
@@ -50,6 +97,7 @@ likely just steal Rails' implementation.
 ## TODO
 
 * improve safe mode support by redefining Kernel#sleep to raise.
+* improve start up time of server
 
 ## Maybe/Someday TODO Wishlist
 

@@ -11,10 +11,11 @@ module CouchDB
   attr_accessor :debug, :wait_for_connection, :stop_on_error
   
   def stderr_to=(val)
-    $error = File.open(val,'wa')
+    $error = File.open(val,'a+')
   end
 
   def loop
+    debugger if @wait_for_connection
     while command = read do
       write run(command)
     end

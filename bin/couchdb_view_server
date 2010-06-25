@@ -49,7 +49,7 @@ def parse_args
     end
     
     opts.on('-r FILE','require a file into the view server so it can be accessed within view functions') do |file|
-      require file
+      require file.lstrip.rstrip
     end
       
     opts.on('-h','--help','Display this screen') do
@@ -107,4 +107,4 @@ def parse_args
 end
 
 parse_args if ARGV.size > 0
-CouchDB.loop
+CouchDB.loop if __FILE__ == $0

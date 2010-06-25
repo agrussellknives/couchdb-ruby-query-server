@@ -22,7 +22,7 @@ context "reading functions" do
   test "it returns an error if the code does not return a proc" do
     str = "bar = 2"
     response = CouchDB::Sandbox.make_proc(str)
-    assert_kind_of response, Array
+    assert_kind_of Array, response
     assert_equal response.shift, 'error'
     assert_equal response.shift, 'compilation_error'
   end
