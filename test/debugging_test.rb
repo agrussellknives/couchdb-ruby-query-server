@@ -18,14 +18,14 @@ class Test::Unit::TestCase
 end
 
 context "connection is refused in safe mode" do
-    
+  
   setup do
-    @vs = IO.popen('bin/couchdb_view_server --debug --wait','r+')
+    @vs = IO.popen('bin/couchdb_view_server --debug --wait -f /dev/null','r+')
   end
   
   test "connection refused" do  
     assert_raises EOFError do
-      @db = IO.popen('rdebug -c','r+')
+      @db = IO.popen('rdebug -c 2>/dev/null','r+')
       wait_for_debugger
     end
   end
@@ -39,8 +39,8 @@ end
 context "wait for debugger at start" do
   
   setup do
-    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug --wait','r+')
-    @db = IO.popen('rdebug -c','r+')
+    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug --wait 2>/dev/null','r+')
+    @db = IO.popen('rdebug -c 2>/dev/null','r+')
   end
   
   test "wait for debugger" do
@@ -60,13 +60,13 @@ end
 
 context "crash debugging works" do
   setup do
-    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug --stop-on-error -f /dev/null','r+')
+    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug --stop-on-error 2>/dev/null','r+')
     @vs << ["add_fun","lambda { raise RuntimeError }"]
     @vs.puts
     @vs << ["map_doc","{'_id':'foo'}"]
     @vs.puts
     @vs.flush
-    @db = IO.popen('rdebug -c','r+')
+    @db = IO.popen('rdebug -c 2>/dev/null','r+')
   end
   
   
@@ -90,7 +90,7 @@ end
 context "debugging works" do
   
   setup do    
-    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug -f /dev/null','r+')
+    @vs = IO.popen('bin/couchdb_view_server --unsafe --debug 2>/dev/null','r+')
     @vs << ["add_fun","
         lambda { |doc| 
           debugger;
@@ -101,7 +101,7 @@ context "debugging works" do
     @vs << ["map_doc","{'_id':'foo'}"]
     @vs.puts
     @vs.flush
-    @db = IO.popen('rdebug -c','r+')
+    @db = IO.popen('rdebug -c 2>/dev/null','r+')
   end  
     
   test "enters debug mode" do
