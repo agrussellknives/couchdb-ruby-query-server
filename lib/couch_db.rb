@@ -1,4 +1,4 @@
-%w(runner design view sandbox).each {|mod| require "#{File.dirname(__FILE__)}/couch_db/#{mod}.rb" }
+%w(runner design view sandbox).each {|mod| require "#{File.dirname(__FILE__)}/couch_db/#{mod}" }
 require 'json'
 
 module CouchDB
@@ -70,9 +70,7 @@ module CouchDB
       end
     rescue => e
       $error.puts e.message if @debug
-      debugger if @stop_on_error
-      write(e.message)
-      e.message
+      debugger if @stop_on_error      
     end
   end
   

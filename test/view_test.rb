@@ -14,7 +14,6 @@ context "adding map functions" do
   end
   
   test "errors on non-valid source" do
-    # it should raise an exception all the way to the top, actually.
     response = CouchDB.run(["add_fun", "lambda {"])
     assert_equal response, ['error', 'compilation_error', %"SyntaxError: (eval):1: syntax error, unexpected $end\nlambda {\n        ^"] 
   end
