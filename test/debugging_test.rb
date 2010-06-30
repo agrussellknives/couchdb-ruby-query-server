@@ -61,7 +61,7 @@ end
 context "crash debugging works" do
   setup do
     @vs = IO.popen('bin/couchdb_view_server --unsafe --debug --stop-on-error 2>/dev/null','r+')
-    @vs << ["add_fun","lambda { raise RuntimeError }"]
+    @vs << ["add_fun","lambda { |doc| raise RuntimeError }"]
     @vs.puts
     @vs << ["map_doc","{'_id':'foo'}"]
     @vs.puts

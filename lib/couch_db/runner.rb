@@ -14,11 +14,13 @@ module CouchDB
     def run(*args)
       begin
         results = instance_exec *args, &@func
+        if @results then @results else results end
       rescue HaltedFunction => e
         $error.puts(e) if CouchDB.debug
         @error
       rescue => e
         log [e.class.to_s,e.message]
+        debugger if CouchDB.stop_on_error
         results = []
       end
     end

@@ -70,7 +70,6 @@ module CouchDB
       end
     rescue => e
       $error.puts e.message if @debug
-      debugger if @stop_on_error      
     end
   end
   

@@ -35,19 +35,6 @@ module CouchDB
       def emit(key, value)
         @results.push([key, value])
       end
-      
-      def run(*args)
-        begin
-          instance_exec *args, &@func
-          @results
-        rescue HaltedFunction => e
-          $error.puts(e) if CouchDB.debug
-          @error
-        rescue => e
-          log [e.class.to_s,e.message]
-          results = []
-        end
-      end
     end
 
     def reduce(functions, vals)
