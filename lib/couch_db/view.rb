@@ -41,7 +41,11 @@ module CouchDB
           instance_exec *args, &@func
           @results
         rescue HaltedFunction => e
+          $error.puts(e) if CouchDB.debug
           @error
+        rescue => e
+          log [e.class.to_s,e.message]
+          results = []
         end
       end
     end
