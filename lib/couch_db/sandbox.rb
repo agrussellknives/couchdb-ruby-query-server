@@ -27,6 +27,7 @@ module CouchDB
     end
     
     def run(string)
+      raise SyntaxError, "Function does not exist or contains no code" if string == nil
       if safe
         lambda { $SAFE=4; eval(string) }.call
       else

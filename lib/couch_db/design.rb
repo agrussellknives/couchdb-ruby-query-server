@@ -74,6 +74,9 @@ module CouchDB
         @start_response = {"headers" => {}}
         @chunks = []
         tail = super(head, req)
+        # if tail is an error, then just quit, otherwise, ignore tail for now.
+        return tail if tail[0] == 'error' rescue nil
+        
         get_row if ! @fetched_row
         @chunks.push tail if tail
         ["end", @chunks]

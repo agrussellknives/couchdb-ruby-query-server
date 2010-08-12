@@ -13,6 +13,8 @@ module CouchDB
 
     def run(*args)
       begin
+        # return the raw error from sandbox if our proc hasn't compiled.
+        return @func unless @func.is_a?(Proc)
         results = instance_exec *args, &@func
         if @results then @results else results end
       rescue HaltedFunction => e
@@ -20,7 +22,7 @@ module CouchDB
         @error
       rescue => e
         log [e.class.to_s,e.message]
-        debugger if CouchDB.stop_on_error
+        (log('Waiting for debugger....'); debugger) if CouchDB.stop_on_error
         results = []
       end
     end

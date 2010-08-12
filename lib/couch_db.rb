@@ -15,7 +15,7 @@ module CouchDB
   end
 
   def loop
-    debugger if @wait_for_connection
+    (log 'Waiting for debugger...'; debugger) if @wait_for_connection
     while command = read do
       write run(command)
     end
@@ -70,6 +70,7 @@ module CouchDB
       end
     rescue => e
       $error.puts e.message if @debug
+      $error.puts e.backtrace if @debug
     end
   end
   

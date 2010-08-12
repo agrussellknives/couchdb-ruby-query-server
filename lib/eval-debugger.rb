@@ -1,5 +1,11 @@
 module Kernel
   def debugger(steps = 1, &block)
+    if $0.include? 'couchdb_view_server' then
+      $realstdout.puts ["log","Waiting for debugger..."].to_json
+    else
+      $stderr.puts "Waiting for debugger..."
+    end
+    
     Debugger.wait_connection = true
     Debugger.start_remote
     if block
