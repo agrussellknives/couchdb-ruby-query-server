@@ -67,19 +67,33 @@ module CouchDB
     
     class ListRenderer < CouchDB::Runner
       
+      def command command
+        case command = command.shift
+        when "list_row"
+          command.first
+        when "list_end"
+          false
+        else
+          throw :fatal, "list_error", "not a row '#{command}'"
+        end
+      end
+      
+      
       def run(head_and_req)
-        head, req = head_and_req.first
-        @started = false
-        @fetched_row = false
-        @start_response = {"headers" => {}}
-        @chunks = []
-        tail = super(head, req)
-        # if tail is an error, then just quit, otherwise, ignore tail for now.
-        return tail if tail[0] == 'error' rescue nil
+        state do
+          head, req = head_and_req.first
+          @started = false
+          @fetched_row = false
+          @start_response = {"headers" => {}}
+          @chunks = []
+          tail = super(head, req)
+          # if tail is an error, then just quit, otherwise, ignore tail for now.
+          return tail if tail[0] == 'error' rescue nil
         
-        get_row if ! @fetched_row
-        @chunks.push tail if tail
-        ["end", @chunks]
+          get_row if ! @fetched_row
+          @chunks.push tail if tail
+          ["end", @chunks]
+        end
       end
       
       def send(chunk)
@@ -92,15 +106,6 @@ module CouchDB
         __flush_chunks
         if ! @started
           @started = true
-        end
-        row = CouchDB.read
-        case command = row.shift
-        when "list_row"
-          row.first
-        when "list_end"
-          false
-        else
-          throw :fatal, "list_error", "not a row '#{command}'"
         end
       end
       

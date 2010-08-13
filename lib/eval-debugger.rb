@@ -1,6 +1,7 @@
 module Kernel
   def debugger(steps = 1, &block)
     if $0.include? 'couchdb_view_server' then
+      $realstdout = $stdout unless $realstdout
       $realstdout.puts ["log","Waiting for debugger..."].to_json
     else
       $stderr.puts "Waiting for debugger..."
