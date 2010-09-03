@@ -4,9 +4,7 @@ module CouchDBQueryServerProtocol
   include EM::Protocols::LineText2
   
   @run = nil
-  debugger
   
-  # alias :old_send_data :send_data
   def receive_line data
     begin
      command = JSON.parse data if data
@@ -22,6 +20,7 @@ module CouchDBQueryServerProtocol
   def send_data data
     old_send_data data.to_json
   end
+  alias :old_send_data :send_data
   
   def run &block
     @run = block

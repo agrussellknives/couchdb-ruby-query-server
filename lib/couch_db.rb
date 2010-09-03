@@ -25,9 +25,9 @@ module CouchDB
   
   def default &block
     if block_given? then
-      STATE_PROCESSOR.default = block
+      STATE_PROCESSORS['default'] = block
     else
-      STATE_PROCESSOR.default = lambda do |command|
+      STATE_PROCESSORS['default'] = lambda do |command|
         puts command
       end
     end
