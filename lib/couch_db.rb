@@ -42,7 +42,8 @@ module CouchDB
     EventMachine::run do
       @pipe = EM.attach $stdin, CouchDBQueryServerProtocol do |pipe|
         pipe.run do |command|
-            STATE_PROCESSORS[state].call(command)
+          puts 'thing'
+          STATE_PROCESSORS[state].call(command)
         end
       end
     end

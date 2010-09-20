@@ -10,7 +10,7 @@ module CouchDBQueryServerProtocol
      command = JSON.parse data if data
     rescue JSON::ParserError => e
       #an unparseable command - make "run" go fatal.
-      return ['']
+      command = ['']
     rescue => e
       raise e
     end
