@@ -1,18 +1,24 @@
 require 'ruby-debug'
 require 'eval-debugger'
 
+require 'activesupport'
+
 #stdlib
 require 'json'
 require 'eventmachine'
 
+
+
 # couchdb requires
-%w(runner design view sandbox).each {|mod| require "#{File.dirname(__FILE__)}/couch_db/#{mod}" }
+%w(runner design view sandbox arguments).each {|mod| require "#{File.dirname(__FILE__)}/couch_db/#{mod}" }
 
 #event machine
-%w(query_server_protocol).each {|mod| require "#{File.dirname(__FILE__)}/eventmachine/#{mod}" }
+%w(query_server_protocol state_processor).each {|mod| require "#{File.dirname(__FILE__)}/eventmachine/#{mod}" }
 
 
 module CouchDB
+  class UnknownStateError < StandardError; end
+  include Arguments
   extend self
   $realstdout = $stdout
   $realstdin = $stdin
@@ -21,13 +27,23 @@ module CouchDB
   
   STATE_PROCESSORS = {}
   
-  attr_accessor :debug, :wait_for_connection, :stop_on_error, :state
+  attr_accessor :debug, :wait_for_connection, :stop_on_error
   
-  def default &block
+  def state= key
+    @state = key.intern
+  end
+  
+  def state key = :default, protocol = CouchDBQueryServerProtocol, &block
+    # this method does double duty.
+    return @state unless key and block_given?
+    
+  
+    key = key.intern
+    STATE_PROCESSORS[key] = {}
     if block_given? then
-      STATE_PROCESSORS['default'] = block
+      STATE_PROCESSORS[key] = StateProcessorFactory.create(key, protocol, &block)
     else
-      STATE_PROCESSORS['default'] = lambda do |command|
+      STATE_PROCESSORS[key] = StateProcessorFactory.create(key, NilProtocol) do |command|
         puts command
       end
     end
@@ -37,13 +53,17 @@ module CouchDB
     $error = File.open(val,'a+')
   end
   
-  def loop
-    (log 'Waiting for debugger...'; debugger) if @wait_for_connection  
+  def loop initial_state = nil
+    unless (initial_state and STATE_PROCESSORS.has_key? initial_state.intern) then
+      raise UnknowStateError 'CouchLoop was started in an unknown or nil state.'
+    end
+    state = initial_state
+    (log 'Waiting for debugger...'; debugger) if wait_for_connection  
     EventMachine::run do
-      @pipe = EM.attach $stdin, CouchDBQueryServerProtocol do |pipe|
+      @pipe = EM.attach $stdin, STATE_PROCESSORS[state][:protocol] do |pipe|
         pipe.run do |command|
-          puts 'thing'
-          STATE_PROCESSORS[state].call(command)
+          res = STATE_PROCESSORS[state][:block].call(command)
+          write res
         end
       end
     end
@@ -63,31 +83,3 @@ module CouchDB
   end
   
 end
-
-CouchDB.default do 
-  begin
-    cmd = command.shift
-    case cmd
-    when 'reset'
-      View.reset
-      true
-    when 'ddoc'
-      Design.handle(command)
-    when 'add_fun'
-      View.add_map_function(command.shift)
-    when 'map_doc'
-      View.map(command.shift)
-    when 'reduce'
-      View.reduce(command.shift, command.shift)
-    when 'rereduce'
-      View.rereduce(command.shift, command.shift)
-    else
-      # this is actually a fatal.
-      exit('error','unknown_command')
-    end
-  rescue => e
-    $error.puts e.message if @debug
-    $error.puts e.backtrace if @debug
-  end
-end
-  

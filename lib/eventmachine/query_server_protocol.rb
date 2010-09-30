@@ -10,14 +10,15 @@ module CouchDBQueryServerProtocol
      command = JSON.parse data if data
     rescue JSON::ParserError => e
       #an unparseable command - make "run" go fatal.
-      command = ['']
+      command = [""]
     rescue => e
       raise e
     end
-    @run.call command
+    @run.call(command)
   end
   
   def send_data data
+    debugger
     old_send_data data.to_json
   end
   alias :old_send_data :send_data
