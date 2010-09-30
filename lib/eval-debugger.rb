@@ -41,6 +41,7 @@ module Debugger
       # if so, write it to a temp file, and reset state so that we list that file.
       if /\(eval\)/ =~ @state.file
         @state.original_file = @state.file
+        $stderr << @state;
         locals = eval "local_variables", Debugger.current_context.frame_binding(0)
         if locals.include?(:string)
           string,fname = eval "[string,\"/tmp/eval-#{string.object_id}.rb\"]", Debugger.current_context.frame_binding(0)
@@ -84,12 +85,13 @@ module Debugger
     # If we can show from B to E then we return B, otherwise we return the
     # previous line @state.previous_line.
     def display_list(b, e, file, current)
+      $stderr << [b,e,file,current]
       lines = LineCache::getlines(file, Command.settings[:reload_source_on_change])
       b = [b,1].max
-      e = lines.size if lines.size < e
       print "[%d, %d] in %s\n", b, e, file
 
       if lines
+        e = lines.size if lines.size < e
         return @state.previous_line if b >= lines.size
         b.upto(e) do |n|
           if n > 0 && lines[n-1]
