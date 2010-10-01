@@ -18,10 +18,8 @@ module CouchDBQueryServerProtocol
   end
   
   def send_data data
-    debugger
-    old_send_data data.to_json
+    puts data.to_json
   end
-  alias :old_send_data :send_data
   
   def run &block
     @run = block

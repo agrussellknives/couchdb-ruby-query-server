@@ -1,12 +1,9 @@
 require 'ruby-debug'
 require 'eval-debugger'
 
-require 'activesupport'
-
 #stdlib
 require 'json'
 require 'eventmachine'
-
 
 
 # couchdb requires
@@ -37,7 +34,6 @@ module CouchDB
     # this method does double duty.
     return @state unless key and block_given?
     
-  
     key = key.intern
     STATE_PROCESSORS[key] = {}
     if block_given? then
@@ -53,24 +49,32 @@ module CouchDB
     $error = File.open(val,'a+')
   end
   
-  def loop initial_state = nil
+  def start initial_state = nil
     unless (initial_state and STATE_PROCESSORS.has_key? initial_state.intern) then
       raise UnknowStateError 'CouchLoop was started in an unknown or nil state.'
     end
     state = initial_state
     (log 'Waiting for debugger...'; debugger) if wait_for_connection  
     EventMachine::run do
-      @pipe = EM.attach $stdin, STATE_PROCESSORS[state][:protocol] do |pipe|
+      @pipe = EM.attach $stdin, STATE_PROCESSORS[state].protocol do |pipe|
         pipe.run do |command|
-          res = STATE_PROCESSORS[state][:block].call(command)
-          write res
+          begin 
+            write STATE_PROCESSORS[state].new.process(command)
+          rescue ProcessorDoesNotRespond
+            command = command.shift
+            retry
+          end
         end
       end
     end
   end
   
   def log(thing)
-    @pipe.send_data(["log", thing.to_json])
+    if @pipe then
+      @pipe.send_data(["log", thing.to_json])
+    else
+      $error.puts ["log",thing.to_json]
+    end
   end
   
   def exit(type = nil,msg = nil)
@@ -82,4 +86,8 @@ module CouchDB
     @pipe.send_data response
   end
   
+end
+
+def commands_for key, protocol = CouchDBQueryServerProtocol, &block
+  CouchDB.state key, protocol, &block
 end

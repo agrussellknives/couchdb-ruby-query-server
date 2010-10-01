@@ -5,6 +5,10 @@ module NilProtocol
       @run.call(command)
     end
 
+    def send_data data
+        $stderr << data
+    end
+
     def run &block
       @run = block
     end
