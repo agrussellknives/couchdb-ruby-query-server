@@ -7,11 +7,10 @@ require 'eventmachine'
 
 
 # couchdb requires
-%w(runner design view sandbox arguments).each {|mod| require "#{File.dirname(__FILE__)}/couch_db/#{mod}" }
+%w(runner sandbox arguments).each {|mod| require "#{File.dirname(__FILE__)}/couchdb_core/#{mod}" }
 
 #event machine
 %w(query_server_protocol state_processor).each {|mod| require "#{File.dirname(__FILE__)}/eventmachine/#{mod}" }
-
 
 module CouchDB
   class UnknownStateError < StandardError; end
@@ -35,7 +34,6 @@ module CouchDB
     return @state unless key and block_given?
     
     key = key.intern
-    STATE_PROCESSORS[key] = {}
     if block_given? then
       STATE_PROCESSORS[key] = StateProcessorFactory.create(key, protocol, &block)
     else
@@ -60,9 +58,11 @@ module CouchDB
         pipe.run do |command|
           begin 
             write STATE_PROCESSORS[state].new.process(command)
-          rescue ProcessorDoesNotRespond
-            command = command.shift
+          rescue ProcessorDelegatesTo => e 
+            state = e.state
             retry
+          rescue ProcessorDoesNotRespond, ProcessorExit => e
+            exit error, "unknown_command", e.to_s 
           end
         end
       end
@@ -91,3 +91,4 @@ end
 def commands_for key, protocol = CouchDBQueryServerProtocol, &block
   CouchDB.state key, protocol, &block
 end
+
