@@ -44,18 +44,21 @@ end
 
   
 commands_for :design_document do |command|
-  begin
-    cmd = command.shift
-    case cmd
-    when 'new'
-      do_something
-    else
-      do_someotherthing
-    end
-  rescue => e
+  debugger
+
+  on :new do |cmd|
+    Design.new_doc cmd
+  end
+
+  otherwise do |cmd|
+    Design.action cmd
+  end
+
+  on_error do |e|
     error e.message
     error e.backtrace
   end
+
 end
 
 commands_for :list_function do |command|

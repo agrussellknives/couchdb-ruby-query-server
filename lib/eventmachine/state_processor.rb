@@ -37,13 +37,19 @@ class StateProcessorFactory
               raise ProcessorDelegatesTo, state 
             end
             def error e
-              $error.puts e if CouchDB.debug
+              $stderr.puts e 
             end
             def exit e
               raise ProcessorExit, e
             end
             def on_error error=nil
-              yield error if error
+              self.define_method :report_error, error, &block
+            end
+            def otherwise 
+              if block_given?
+                yield @command
+                @executed_command = @command
+              end
             end
             def on cmd
               if cmd == @command
@@ -58,18 +64,23 @@ class StateProcessorFactory
               rescue LocalJumpError => e
                 return e.exit_value if e.reason == :return
               rescue StandardError => e
-                on_error e 
+                if methods.include? :report_error then
+                  report_error e
+                else
+                  error e
+                end
               end
             
               if @executed_command == nil
+                self.otherwise
                 cmd = @command
                 @command = nil
-                raise ProcessorDoesNotRespond, "Processor does not respond to #{cmd}"
+                raise ProcessorDoesNotRespond, ["unknown_command","unknown command #{cmd}"]
               end
 
             end
             def inspect
-               "#<#{self.class}:#{self.object_id << 1} @protocol: #{@protocol}>"
+               "#<#{self.class}:#{self.object_id << 1} protocol: #{self.class.protocol}>"
             end
           end
           const_set(class_name.to_sym,klass) 
