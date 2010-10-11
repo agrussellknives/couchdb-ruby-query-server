@@ -1,8 +1,17 @@
 class Design
-  class HaltedFunction < StandardError; end
+  class << self
 
-  DOCUMENTS = {}
-  
+    class HaltedFunction < StandardError; end
+
+    DOCUMENTS = {}
+    
+    def new_doc doc_name, doc
+      DOCUMENTS[doc_name] = doc
+      true
+    end
+
+  end
+    
   def handle(command=[])
     case cmd = command.shift
     when 'new'
@@ -17,6 +26,7 @@ class Design
       send action, func, doc, command
     end
   end
+
   
   def filters(func, design_doc, docs_and_req)
     docs, req = docs_and_req.first

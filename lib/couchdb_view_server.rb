@@ -8,8 +8,6 @@ commands_for :view_server do |command|
   end
 
   on :ddoc do
-    debugger
-    puts 'called dddoc'
     switch_state :design_document
   end
 
@@ -37,14 +35,13 @@ end
 
 
 commands_for :design_document do |command|
-  debugger
 
-  on :new do |cmd|
-    Design.new_doc cmd
+  on :new do |doc_name, doc|
+    Design.new_doc doc_name, doc
   end
 
-  otherwise do |cmd|
-    Design.action cmd
+  otherwise do |doc, command|
+    switch_state :document 
   end
 
   on_error do |e|
@@ -53,6 +50,17 @@ commands_for :design_document do |command|
   end
 
 end
+
+commands_for :document do |command|
+
+  debugger
+  
+  on :show do |show_func, doc|
+    debugger
+  end
+
+end
+
 
 commands_for :list_function do |command|
   begin
