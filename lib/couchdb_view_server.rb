@@ -7,16 +7,9 @@ commands_for :view_server do |command|
     return true 
   end
 
-  on :test do
-    puts "called test block"
-    break
-  end
-
-  on :test do
-    puts "called test again"
-  end
-
   on :ddoc do
+    debugger
+    puts 'called dddoc'
     switch_state :design_document
   end
 
@@ -42,7 +35,7 @@ commands_for :view_server do |command|
   end
 end
 
-  
+
 commands_for :design_document do |command|
   debugger
 
