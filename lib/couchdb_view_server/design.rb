@@ -1,16 +1,32 @@
 class Design
+  class HaltedFunction < StandardError; end
+  DOCUMENTS = {} 
+  
   class << self
-
-    class HaltedFunction < StandardError; end
-
-    DOCUMENTS = {}
     
     def new_doc doc_name, doc
-      DOCUMENTS[doc_name] = doc
+      DOCUMENTS[doc_name.intern] = doc
       true
     end
 
+    def before
+      yield @cmd
+    end
+
+    def after
+      @after = block
+    end
+
+    def run doc, req 
+      @cmd = OpenStruct.new()
+      yield 
+      comp_function = Sandbox.make_proc(DOCUMENTS[cmd.design_doc][cmd.function])
+      result = CouchDB::Runner.new(comp_function).run(doc, req)
+      @after.call(result)
+    end
+
   end
+
     
   def handle(command=[])
     case cmd = command.shift
