@@ -20,7 +20,7 @@ class View
 
   class << self  
     def add_map_function(funcstr)
-      response = Sandbox.make_proc(funcstr)
+      response = CouchDB::Sandbox.make_proc(funcstr)
       if response.is_a?(Proc)
         FUNCTIONS.push(response)
         true
@@ -35,23 +35,28 @@ class View
   end
 
   def map(doc)
-    FUNCTIONS.map do |func|
-      MapRunner.new(func).run(doc)
+    begin
+      FUNCTIONS.map do |func|
+        MapRunner.new(func).run(doc)
+      end
+    rescue ZeroDivisionError => e
+      debugger
     end
   end
   
   def reduce(functions, vals)
+    debugger
     keys = vals.map {|val| val.shift }
     vals = vals.map {|val| val.shift }
     result = functions.map do |func|
-      Sandbox.make_proc(func).call(keys, vals, false)
+      CouchDB::Sandbox.make_proc(func).call(keys, vals, false)
     end
     [true, result]
   end
 
   def rereduce(functions, vals)
     result = functions.map do |func|
-      Sandbox.make_proc(func).call([], vals, true)
+      CouchDB::Sandbox.make_proc(func).call([], vals, true)
     end
     [true, result]
   end

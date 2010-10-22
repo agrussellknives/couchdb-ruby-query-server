@@ -4,24 +4,47 @@ class Design
   
   class << self
     
+    def method_missing(m, *args, &block)
+      #TODO - check m to make sure it's part of the state object
+      # so that people can't do evil things with this eval
+      if @call_binding
+        begin
+          eval("send(:#{m},*#{args})", @call_binding) 
+        rescue NoMethodError => e
+          raise NoMethodError, "Could not forward method #{m} to calling context."
+        end
+      else
+        raise NoMethodError, "Design could not find it's calling state."
+      end
+    end
+
     def new_doc doc_name, doc
       DOCUMENTS[doc_name.intern] = doc
       true
     end
 
-    def before
-      yield @cmd
+    def setup &block 
+      @setup = block if block_given? 
     end
 
-    def after
-      @after = block
+    def after &block
+      @after = block if block_given?
     end
 
-    def run doc, req 
-      @cmd = OpenStruct.new()
-      yield 
-      comp_function = Sandbox.make_proc(DOCUMENTS[cmd.design_doc][cmd.function])
+    def run doc, req, &block
+      @call_binding = block.binding
+      command = eval("command",@call_binding)
+      @cmd = {}
+     
+      class_eval &block
+
+      @setup.call(@cmd)
+
+      comp_function = CouchDB::Sandbox.make_proc(
+        DOCUMENTS[@cmd[:design_doc]][command][@cmd[:function]])
+
       result = CouchDB::Runner.new(comp_function).run(doc, req)
+      
       @after.call(result)
     end
 
