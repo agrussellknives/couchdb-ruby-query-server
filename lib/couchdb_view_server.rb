@@ -23,27 +23,33 @@ commands_for :view_server do |command|
         otherwise do |ddoc, command, doc_body, req|
           
           context do |c|
-            c[:ddoc] = ddoc
+            Design.ddoc = ddoc
+            #TODO, set an executor for a context.
+            # so that it can read on :shows do |whatever| execute do |result| post_process end end
           end
           
           switch_state :document do |doc_state|
 
             on :shows do |show_func, doc, req|
-              result = Design.run(doc, req) do
-                setup do |cmd|
-                  cmd[:design_doc] = context(:ddoc)
-                  cmd[:function] = show_func
-                end
-                
-                after do |response|
-                  if response.respond_to? :first and response.first == "error"
-                    response
-                  else
-                    ["resp", response.is_a?(String) ? {"body" => response} : response]
-                  end
-                end
+              Design.shows(show_func, doc, req) do |result|
+                stop_with result if result.respond_to? :first and result.first == "error"
+                stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
               end
-              stop_with result
+            end
+
+            on :validate_doc_update do |new_doc, old_doc, user_ctx|
+              Design.validate_doc_update(new_doc, old_doc, user_ctx) do |result|
+                #TODO - catch forbidden in throw, since this is kinda odd
+                stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
+                stop_with 1 
+              end
+            end
+
+            on :filters do |filter, *docs, req|
+              results = docs.map do |doc|
+                Design.filters(filter,doc,req)
+              end
+              stop_with [true, results]
             end
 
           end
@@ -60,13 +66,12 @@ commands_for :view_server do |command|
     stop_with View.new.map(doc)
   end
 
-
-  on :reduce do |func, *groups|
-    View.new.reduce(func, groups)
+  on :reduce do |func, kv_pairs|
+    stop_with View.new.reduce(func, kv_pairs)
   end
 
-  on :rereduce do
-    View.new.rereduce(command.shift, command.shift)
+  on :rereduce do |func, kv_pairs|
+    stop_with View.new.rereduce(func, kv_pairs)
   end
 
 end

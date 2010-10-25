@@ -1,72 +1,64 @@
+require 'active_support/hash_with_indifferent_access'
+
+#TODO - move this class into core, and let the query server subclass it.
+# figure out how you deal with finding stuff in the doc store then
+require_relative '../../../couchdb-sectional/eventmachine/state_processor/state_processor_exceptions'
+
 class Design
+  include StateProcessor::StateProcessorExceptions
+
   class HaltedFunction < StandardError; end
-  DOCUMENTS = {} 
+  
+  DOCUMENTS = HashWithIndifferentAccess.new 
   
   class << self
+
+    attr_accessor :ddoc
     
     def method_missing(m, *args, &block)
-      #TODO - check m to make sure it's part of the state object
-      # so that people can't do evil things with this eval
-      if @call_binding
-        begin
-          eval("send(:#{m},*#{args})", @call_binding) 
-        rescue NoMethodError => e
-          raise NoMethodError, "Could not forward method #{m} to calling context."
-        end
-      else
-        raise NoMethodError, "Design could not find it's calling state."
+      if not block_given? and @ddoc == nil
+        raise StateProcessorNoContext, "Context not set, or could not determine context automatically."
       end
+      @ddoc = eval("context(:ddoc)", block.binding)
+      self.run(m,*args, &block)
+    end
+
+    #TODO set executor for context in server_def
+    def execute(ddoc, m, *args, &block)
+      @ddoc = ddoc
+      self.run(m, *args, &block)
     end
 
     def new_doc doc_name, doc
-      DOCUMENTS[doc_name.intern] = doc
+      DOCUMENTS[doc_name] = doc
       true
     end
 
-    def setup &block 
-      @setup = block if block_given? 
-    end
+    def run command, *args, &block
+      funcs = DOCUMENTS[@ddoc][command]
+      if funcs.respond_to? :keys
+        comp_function = funcs[args.shift]
+      else
+        comp_function = funcs
+      end
 
-    def after &block
-      @after = block if block_given?
-    end
+      #TODO - cache the compiled version of the function so that
+      # it isn't compiled afresh on each request.  if we want
+      # we can add a external to reset the cache later
 
-    def run doc, req, &block
-      @call_binding = block.binding
-      command = eval("command",@call_binding)
-      @cmd = {}
-     
-      class_eval &block
-
-      @setup.call(@cmd)
-
-      comp_function = CouchDB::Sandbox.make_proc(
-        DOCUMENTS[@cmd[:design_doc]][command][@cmd[:function]])
-
-      result = CouchDB::Runner.new(comp_function).run(doc, req)
+      comp_function = CouchDB::Sandbox.make_proc comp_function
+      result = CouchDB::Runner.new(comp_function).run(*args)
       
-      @after.call(result)
+      if block_given? 
+        yield result
+      else
+        result
+      end
     end
-
-  end
-
     
-  def handle(command=[])
-    case cmd = command.shift
-    when 'new'
-      id, ddoc = command[0], command[1]
-      DOCUMENTS[id] = ddoc
-      true
-    else
-      doc = DOCUMENTS[cmd]
-      action, name = command.shift
-      func = name ? doc[action][name] : doc[action]
-      func = Sandbox.make_proc(func)
-      send action, func, doc, command
-    end
   end
 
-  
+
   def filters(func, design_doc, docs_and_req)
     docs, req = docs_and_req.first
     results = docs.map do |doc| 
@@ -79,16 +71,6 @@ class Design
     ListRenderer.new(func, design_doc).run(head_and_req)
   end
   
-  def shows(func, design_doc, doc_and_req)
-    response = CouchDB::Runner.new(func, design_doc).run(*doc_and_req.first)
-    if response.respond_to?(:first) && response.first == "error"
-      response
-    else
-      response = {"body" => response} if response.is_a?(String)
-      ["resp", response]
-    end
-  end
-  
   def updates(func, design_doc, command)
     doc, request = command.shift
     doc.untrust if doc.respond_to?(:untrust)
@@ -98,16 +80,6 @@ class Design
       doc, response = CouchDB::Runner.new(func, design_doc).run(doc, request)
       response = {"body" => response} if response.kind_of?(String)
       ["up", doc, response]  
-    end
-  end
-  
-  def validate_doc_update(func, design_doc, command)
-    new_doc, old_doc, user_ctx = command.shift
-    response = CouchDB::Runner.new(func, design_doc).run(new_doc, old_doc, user_ctx)
-    if response.respond_to?(:has_key?) && response.has_key?("forbidden")
-      response
-    else
-      1
     end
   end
   

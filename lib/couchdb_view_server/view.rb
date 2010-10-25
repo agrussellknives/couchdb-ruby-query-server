@@ -1,6 +1,5 @@
 class View
 
-
   #we have to make a new runner to 
   #batch our results emit
   class MapRunner < CouchDB::Runner
@@ -44,10 +43,8 @@ class View
     end
   end
   
-  def reduce(functions, vals)
-    debugger
-    keys = vals.map {|val| val.shift }
-    vals = vals.map {|val| val.shift }
+  def reduce(functions, kvs)
+    keys, vals = kvs.transpose
     result = functions.map do |func|
       CouchDB::Sandbox.make_proc(func).call(keys, vals, false)
     end
