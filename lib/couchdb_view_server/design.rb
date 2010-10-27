@@ -1,12 +1,11 @@
 require 'active_support/hash_with_indifferent_access'
 
-#TODO - move this class into core, and let the query server subclass it.
-# figure out how you deal with finding stuff in the doc store then
-require_relative '../../../couchdb-sectional/eventmachine/state_processor/state_processor_exceptions'
+#TODO - make sectional into a separate gem so i don't have to do this
+require_relative '../../../couchdb-sectional/eventmachine/state_processor'
 
 class Design
-  include StateProcessor::StateProcessorExceptions
-
+  extend StateProcessor::StateProcessorWorker
+  
   class HaltedFunction < StandardError; end
   
   DOCUMENTS = HashWithIndifferentAccess.new 
@@ -14,20 +13,6 @@ class Design
   class << self
 
     attr_accessor :ddoc
-    
-    def method_missing(m, *args, &block)
-      if not block_given? and @ddoc == nil
-        raise StateProcessorNoContext, "Context not set, or could not determine context automatically."
-      end
-      @ddoc = eval("context(:ddoc)", block.binding)
-      self.run(m,*args, &block)
-    end
-
-    #TODO set executor for context in server_def
-    def execute(ddoc, m, *args, &block)
-      @ddoc = ddoc
-      self.run(m, *args, &block)
-    end
 
     def new_doc doc_name, doc
       DOCUMENTS[doc_name] = doc
@@ -58,14 +43,6 @@ class Design
     
   end
 
-
-  def filters(func, design_doc, docs_and_req)
-    docs, req = docs_and_req.first
-    results = docs.map do |doc| 
-      !!CouchDB::Runner.new(func, design_doc).run(doc, req)
-    end
-    [true, results]
-  end
   
   def lists(func, design_doc, head_and_req)
     ListRenderer.new(func, design_doc).run(head_and_req)

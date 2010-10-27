@@ -14,32 +14,26 @@ commands_for :view_server do |command|
   end
 
   on :ddoc do
-    switch_state :design_document do |ddoc_state|
+    switch_state :design_document, :worker => Design do |ddoc_state|
         
         on :new do |doc_name, doc|
-          Design.new_doc doc_name, doc
+          new_doc doc_name, doc
         end
 
-        otherwise do |ddoc, command, doc_body, req|
-          
-          context do |c|
-            Design.ddoc = ddoc
-            #TODO, set an executor for a context.
-            # so that it can read on :shows do |whatever| execute do |result| post_process end end
-          end
+        otherwise do |design_doc, command, doc_body, req|
+          ddoc = design_doc 
           
           switch_state :document do |doc_state|
 
             on :shows do |show_func, doc, req|
-              Design.shows(show_func, doc, req) do |result|
+              execute show_func, doc, req do |result|
                 stop_with result if result.respond_to? :first and result.first == "error"
                 stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
               end
             end
 
             on :validate_doc_update do |new_doc, old_doc, user_ctx|
-              Design.validate_doc_update(new_doc, old_doc, user_ctx) do |result|
-                #TODO - catch forbidden in throw, since this is kinda odd
+              execute new_doc, old_doc, user_ctx do |result|
                 stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
                 stop_with 1 
               end
@@ -47,7 +41,7 @@ commands_for :view_server do |command|
 
             on :filters do |filter, *docs, req|
               results = docs.map do |doc|
-                Design.filters(filter,doc,req)
+                execute filter,doc,req
               end
               stop_with [true, results]
             end
