@@ -7,4 +7,4 @@ require 'couch_db'
 require 'couchdb_view_server'
 
 CouchDB.parse_args ARGV if ARGV.size > 0
-CouchDB.start :view_server if __FILE__ == $0
+CouchDB.start ViewServer if __FILE__ == $0

@@ -1,4 +1,4 @@
-class View
+class ViewServer < StateProcessor
 
   #we have to make a new runner to 
   #batch our results emit
