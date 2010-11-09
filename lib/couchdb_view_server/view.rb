@@ -1,5 +1,6 @@
-class ViewServer < StateProcessor
-
+class ViewServer 
+  include StateProcessor
+  
   #we have to make a new runner to 
   #batch our results emit
   class MapRunner < CouchDB::Runner

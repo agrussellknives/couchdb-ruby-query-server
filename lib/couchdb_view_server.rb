@@ -1,7 +1,7 @@
 %w{design view}.each {|mod| require "#{File.dirname(__FILE__)}/couchdb_view_server/#{mod}" }
 
 
-class ViewServer < StateProcessor
+class ViewServer 
 
   protocol CouchDBQueryServerProtocol
 
@@ -13,39 +13,42 @@ class ViewServer < StateProcessor
     
     on :reset do
       reset
-      stop_with true 
+      return true 
     end
 
     on :add_fun do |func|
-      stop_with add_map_function(func)
+      add_map_function(func)
     end
 
+    # TODO, change this to a block so you don't have to
+    # explcicitly instantiate a worker object
     on :map_doc do |doc|
-      stop_with new.map(doc)
+      new.map(doc)
     end
 
     on :reduce do |func, kv_pairs|
-      stop_with new.reduce(func, kv_pairs)
+      new.reduce(func, kv_pairs)
     end
 
     on :rereduce do |func, kv_pairs|
-      stop_with new.rereduce(func, kv_pairs)
+      new.rereduce(func, kv_pairs)
     end
 
     on :ddoc do
       switch_state DesignDoc do
-        class DesignDoc < StateProcessor
-          debugger
+        class DesignDoc 
           commands do
             on :new do |doc_name, doc|
               new_doc doc_name, doc
             end
 
+            debugger
+
             otherwise do |design_doc, command, doc_body, req|
               @ddoc = design_doc 
               
               switch_state Document do
-                class Document < State Processor
+                class Document 
                   on :shows do |show_func, doc, req|
                     execute show_func, doc, req do |result|
                       stop_with result if result.respond_to? :first and result.first == "error"

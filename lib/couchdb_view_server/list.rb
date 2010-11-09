@@ -1,6 +1,7 @@
-class ViewServer < StateProcessor
-  class DesignDoc < StateProcessor
-    class List < StateProcessor
+class ViewServer 
+  class DesignDoc 
+    class List 
+      include StateProcessor
       
       def command command
         case command = command.shift

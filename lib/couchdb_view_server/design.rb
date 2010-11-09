@@ -3,8 +3,9 @@ require 'active_support/hash_with_indifferent_access'
 #TODO - make sectional into a separate gem so i don't have to do this
 require_relative '../../../couchdb-sectional/eventmachine/state_processor'
 
-class ViewServer < StateProcessor
-  class DesignDoc < StateProcessor
+class ViewServer 
+  class DesignDoc
+    include StateProcessor
     extend StateProcessor::StateProcessorWorker
     
     class HaltedFunction < StandardError; end
