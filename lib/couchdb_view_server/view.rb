@@ -1,5 +1,6 @@
 class ViewServer 
   include StateProcessor
+  include StateProcessor::StateProcessorWorker
   
   #we have to make a new runner to 
   #batch our results emit

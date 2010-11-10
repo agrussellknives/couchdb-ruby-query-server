@@ -23,6 +23,7 @@ class ViewServer
     # TODO, change this to a block so you don't have to
     # explcicitly instantiate a worker object
     on :map_doc do |doc|
+      # this should read like execute { map(doc) }
       new.map(doc)
     end
 
@@ -42,32 +43,48 @@ class ViewServer
               new_doc doc_name, doc
             end
 
-            debugger
-
             otherwise do |design_doc, command, doc_body, req|
-              @ddoc = design_doc 
-              
               switch_state Document do
-                class Document 
-                  on :shows do |show_func, doc, req|
-                    execute show_func, doc, req do |result|
-                      stop_with result if result.respond_to? :first and result.first == "error"
-                      stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
+                
+                context do 
+                  ddoc = design_doc
+                end
+                
+                class Document
+                  commands do
+                    on :shows do |show_func, doc, req|
+                      execute show_func, doc, req do |result|
+                        stop_with result if result.respond_to? :first and result.first == "error"
+                        stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
+                      end
                     end
-                  end
 
-                  on :validate_doc_update do |new_doc, old_doc, user_ctx|
-                    execute new_doc, old_doc, user_ctx do |result|
-                      stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
-                      stop_with 1 
+                    on :validate_doc_update do |new_doc, old_doc, user_ctx|
+                      execute new_doc, old_doc, user_ctx do |result|
+                        stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
+                        stop_with 1 
+                      end
                     end
-                  end
 
-                  on :filters do |filter, *docs, req|
-                    results = docs.map do |doc|
-                      execute filter,doc,req
+                    on :filters do |filter, *docs, req|
+                      results = docs.map do |doc|
+                        execute filter,doc,req
+                      end
+                      stop_with [true, results]
                     end
-                    stop_with [true, results]
+
+                    on :updates do |func, doc, req|
+                      debugger
+                      doc, request = command.shift
+                      doc.untrust if doc.respond_to?(:untrust)
+                      if request["method"] == "GET"
+                        ["error", "method_not_allowed", "Update functions do not allow GET"]
+                      else
+                        doc, response = CouchDB::Runner.new(func, design_doc).run(doc, request)
+                        response = {"body" => response} if response.kind_of?(String)
+                        ["up", doc, response]  
+                      end
+                    end
                   end
                 end
               end
