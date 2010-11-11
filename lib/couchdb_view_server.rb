@@ -45,12 +45,14 @@ class ViewServer
 
             otherwise do |design_doc, command, doc_body, req|
               switch_state Document do
-                
-                context do 
+                debugger
+
+                context do |c|
                   ddoc = design_doc
                 end
-                
+
                 class Document
+                  
                   commands do
                     on :shows do |show_func, doc, req|
                       execute show_func, doc, req do |result|
