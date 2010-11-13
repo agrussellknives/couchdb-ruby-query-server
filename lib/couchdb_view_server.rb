@@ -10,31 +10,32 @@ class ViewServer
       error e.message
       error e.backtrace
     end
+
+    stop_after do
+      # calls class method reset without arguments
+      on :reset 
     
-    on :reset do
-      reset
-      return true 
-    end
+      # calls class method add_fun with argument func
+      on :add_fun do |func|
+        add_fun func
+      end
 
-    on :add_fun do |func|
-      add_map_function(func)
-    end
+      # calls instance method map with parameter doc
+      # i could make it 'execute doc' but it seems i should
+      # be slightly more explicit than that
+      on :map_doc do |doc|
+        execute :map, doc 
+      end
+      
+      on :reduce do |func, kv_pairs|
+        execute :reduce, func, kv_pairs
+      end
 
-    # TODO, change this to a block so you don't have to
-    # explcicitly instantiate a worker object
-    on :map_doc do |doc|
-      # this should read like execute { map(doc) }
-      new.map(doc)
+      on :rereduce do |func, kv_pairs|
+        execute :rereduce, func, kv_pairs 
+      end
     end
-
-    on :reduce do |func, kv_pairs|
-      new.reduce(func, kv_pairs)
-    end
-
-    on :rereduce do |func, kv_pairs|
-      new.rereduce(func, kv_pairs)
-    end
-
+   
     on :ddoc do
       switch_state DesignDoc do
         class DesignDoc 
@@ -43,26 +44,25 @@ class ViewServer
               new_doc doc_name, doc
             end
 
-            otherwise do |design_doc, command, doc_body, req|
+            on do |design_doc, command, doc_body, req|
               switch_state Document do
-                debugger
-
-                context do |c|
-                  ddoc = design_doc
+                  
+                context do
+                  @ddoc = design_doc
                 end
 
                 class Document
-                  
                   commands do
+                    
                     on :shows do |show_func, doc, req|
-                      execute show_func, doc, req do |result|
+                      run show_func, doc, req do |result|
                         stop_with result if result.respond_to? :first and result.first == "error"
                         stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
                       end
                     end
 
                     on :validate_doc_update do |new_doc, old_doc, user_ctx|
-                      execute new_doc, old_doc, user_ctx do |result|
+                      run new_doc, old_doc, user_ctx do |result|
                         stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
                         stop_with 1 
                       end
@@ -70,22 +70,19 @@ class ViewServer
 
                     on :filters do |filter, *docs, req|
                       results = docs.map do |doc|
-                        execute filter,doc,req
+                        run filter,doc,req
                       end
-                      stop_with [true, results]
                     end
 
                     on :updates do |func, doc, req|
-                      debugger
-                      doc, request = command.shift
                       doc.untrust if doc.respond_to?(:untrust)
-                      if request["method"] == "GET"
-                        ["error", "method_not_allowed", "Update functions do not allow GET"]
-                      else
-                        doc, response = CouchDB::Runner.new(func, design_doc).run(doc, request)
-                        response = {"body" => response} if response.kind_of?(String)
-                        ["up", doc, response]  
+                      unless req["method"] == "GET" 
+                        run func, doc, req do |result|
+                          result = {"body" => result} if result.kind_of? String
+                          stop_with ["up",doc,result]
+                        end
                       end
+                      stop_with ["error", "method_not_allowed", "Update functions do not allow GET"]
                     end
                   end
                 end

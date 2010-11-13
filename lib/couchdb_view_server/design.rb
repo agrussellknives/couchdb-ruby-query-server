@@ -6,14 +6,11 @@ require_relative '../../../couchdb-sectional/eventmachine/state_processor'
 class ViewServer 
   class DesignDoc
     include StateProcessor
-    
-    class HaltedFunction < StandardError; end
+    include StateProcessor::StateProcessorWorker
     
     DOCUMENTS = HashWithIndifferentAccess.new 
     
     class << self
-
-      attr_accessor :ddoc
 
       def new_doc doc_name, doc
         DOCUMENTS[doc_name] = doc
@@ -25,8 +22,13 @@ class ViewServer
       include StateProcessor
       include StateProcessor::StateProcessorWorker
 
+      class HaltedFunction < StandardError; end
+
+      attr_accessor :ddoc
+
       def run command, *args, &block
-        funcs = ViewServer::DesignDoc::DOCUMENTS[@ddoc][command]
+        funcs = ViewServer::DesignDoc::DOCUMENTS[ddoc][command]
+        # we need to make sure that we got something hashlike
         if funcs.respond_to? :keys
           comp_function = funcs[args.shift]
         else

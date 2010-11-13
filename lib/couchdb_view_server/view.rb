@@ -20,7 +20,7 @@ class ViewServer
   FUNCTIONS = []
 
   class << self  
-    def add_map_function(funcstr)
+    def add_fun(funcstr)
       response = CouchDB::Sandbox.make_proc(funcstr)
       if response.is_a?(Proc)
         FUNCTIONS.push(response)
@@ -32,6 +32,7 @@ class ViewServer
 
     def reset
       FUNCTIONS.clear
+      true
     end
   end
 
