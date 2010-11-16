@@ -2,37 +2,11 @@ class ViewServer
   class DesignDoc 
     class List 
       include StateProcessor
-      
-      def command command
-        case command = command.shift
-        when "list_row"
-          command.first
-        when "list_end"
-          false
-        else
-          throw :fatal, "list_error", "not a row '#{command}'"
-        end
-      end
-      
-      
-      def run(head_and_req)
-        state do
-          head, req = head_and_req.first
-          @started = false
-          @fetched_row = false
-          @start_response = {"headers" => {}}
-          @chunks = []
-          tail = super(head, req)
-          # if tail is an error, then just quit, otherwise, ignore tail for now.
-          return tail if tail[0] == 'error' rescue nil
-        
-          get_row if ! @fetched_row
-          @chunks.push tail if tail
-          ["end", @chunks]
-        end
-      end
+      include StateProcessor::StateProcessorWorker
+      include DesignDocAccess
       
       def send(chunk)
+        @chunks ||= []
         @chunks << chunk
         false
       end
@@ -58,7 +32,21 @@ class ViewServer
         CouchDB.write response
         @chunks.clear
       end
+  
+      def run func, *args
+        comp_function = ddoc[:lists][func]
+        @start_response = {:headers => {}}
+        comp_function = CouchDB::Sandbox.make_proc comp_function
+        result = CouchDB::Runner.new(comp_function,self).run(*args)
+
+        if block_given?
+          yield result
+        else
+          result
+        end
+      end
       
+            
     end
   end
 end
