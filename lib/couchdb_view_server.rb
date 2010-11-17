@@ -12,7 +12,7 @@ class ViewServer
       error e.backtrace
     end
 
-    stop_after do
+    return_after do
       # calls class method reset without arguments
       on :reset 
    
@@ -40,12 +40,12 @@ class ViewServer
     on :ddoc do
       switch_state DesignDoc do
         ## THINGS HERE ARE ONLY RUN ONCE THIS IS KINDA SURPRISING AND WEIRD
+        ## WHAT COULD WE DO ABOUT THAT.
         class DesignDoc 
           commands do
-            stop_after do  
-              on :new do |doc_name, doc|
-                new_doc doc_name, doc
-              end
+
+            on :new do |doc_name, doc|
+              return new_doc doc_name, doc
             end
 
             on do |design_doc, command, doc_body, req|
@@ -64,7 +64,6 @@ class ViewServer
                 switch_state List do
                   class List
                     commands do
-                      resume_here
 
                       on :list_row do |req|
                         puts 'list row'
@@ -75,8 +74,9 @@ class ViewServer
                       end
                       
                       on do |list_func, doc, req|
+                        debugger
                         run list_func, doc, req do |result|
-                          puts result 
+                          yield result 
                         end
                       end
                     end
@@ -93,15 +93,15 @@ class ViewServer
                       # within the worker object.  By default it just raises "NotImplementedError"
                       # basically, thought, it will bass run :shows, *args
                       run show_func, doc, req do |result|
-                        stop_with result if result.respond_to? :first and result.first == "error"
-                        stop_with ["resp",result.is_a?(String) ? {"body" => result} : result]
+                        return result if result.try(:first) == :error
+                        return ["resp", result.is_a?(String) ? {"body" => result} : result]
                       end
                     end
 
                     on :validate_doc_update do |new_doc, old_doc, user_ctx|
                       run new_doc, old_doc, user_ctx do |result|
-                        stop_with result if result.respond_to? :has_key? and result.has_key? :forbidden
-                        stop_with 1 
+                        return result if result.try(:has_key?, :forbidden)
+                        return 1 
                       end
                     end
 
@@ -110,18 +110,18 @@ class ViewServer
                       results = docs.map do |doc|
                         !!(run filter,doc,req)
                       end
-                      stop_with [true, results]
+                      return [true, results]
                     end
 
                     on :updates do |func, doc, req|
                       doc.untrust if doc.respond_to?(:untrust)
                       unless req["method"] == "GET" 
                         run func, doc, req do |doc, result|
-                          result = {"body" => result} if result.kind_of? string
-                          stop_with ["up",doc,result]
+                          result = {"body" => result} if result.kind_of? String
+                          return ["up",doc,result]
                         end
                       end
-                      stop_with ["error", "method_not_allowed", "update functions do not allow get"]
+                      return [:error, "method_not_allowed", "update functions do not allow get"]
                     end
                   end
                 end
