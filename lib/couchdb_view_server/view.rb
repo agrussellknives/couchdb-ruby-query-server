@@ -41,9 +41,6 @@ class ViewServer
       FUNCTIONS.map do |func|
         MapRunner.new(func).run(doc)
       end
-    rescue ZeroDivisionError => e
-      debugger
-    end
   end
   
   def reduce(functions, kvs)

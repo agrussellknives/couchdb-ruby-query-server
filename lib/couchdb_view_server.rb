@@ -6,12 +6,17 @@ class ViewServer
   puts 'processing new command from ViewServer'
   protocol CouchDBQueryServerProtocol
 
+  #on error should be here as well
+
+
+  # LET'S SPEAK SECTIONAL
   commands do
     on_error do |e|
       error e.message
       error e.backtrace
     end
 
+    # immediately returns after the first match
     return_after do
       # calls class method reset without arguments
       on :reset 
@@ -40,7 +45,8 @@ class ViewServer
     on :ddoc do
       switch_state DesignDoc do
         ## THINGS HERE ARE ONLY RUN ONCE THIS IS KINDA SURPRISING AND WEIRD
-        ## WHAT COULD WE DO ABOUT THAT.
+        ## WHAT COULD WE DO ABOUT THAT. FIXING THIS INVOLVES REOPENING THE CLASS
+        ## EVERYTIME.
         class DesignDoc 
           commands do
 
@@ -64,6 +70,7 @@ class ViewServer
                 switch_state List do
                   class List
                     commands do
+                      puts 'list commands entered'
 
                       on :list_row do |req|
                         puts 'list row'
@@ -73,10 +80,11 @@ class ViewServer
                         puts 'list end'
                       end
                       
+                      # for now we're using "pass" to mean - return this but don't switch the
+                      # state back to our parent
                       on do |list_func, doc, req|
-                        debugger
                         run list_func, doc, req do |result|
-                          yield result 
+                          pass result
                         end
                       end
                     end
