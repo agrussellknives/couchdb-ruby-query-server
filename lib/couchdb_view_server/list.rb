@@ -33,8 +33,10 @@ class ViewServer
         @chunks.clear
       end
   
-      def run func, *args
-        comp_function = ddoc[:lists][func]
+      def run lists, list_func, *args
+        # lists is always going to be :lists
+        debugger
+        comp_function = ddoc[:lists][list_func]
         @start_response = {:headers => {}}
         comp_function = CouchDB::Sandbox.make_proc comp_function
         result = CouchDB::Runner.new(comp_function,self).run(*args)

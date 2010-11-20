@@ -83,8 +83,14 @@ class ViewServer
                       # for now we're using "pass" to mean - return this but don't switch the
                       # state back to our parent
                       on do |list_func, doc, req|
+                        consume_command!
                         run list_func, doc, req do |result|
-                          pass result
+                          #using "pass" rather than return will cause this command block
+                          #to be execute on every subsequent command rather than
+                          #starting from the top
+                          debugger
+                          puts 'pass called'
+                          pass result                        
                         end
                       end
                     end
