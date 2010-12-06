@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + "/../lib/couch_db"
+require File.dirname(__FILE__).split('/')[0..-3].push(['couchdb-sectional','couch_db']).join('/')
 
 ##
 # test/spec/mini 5

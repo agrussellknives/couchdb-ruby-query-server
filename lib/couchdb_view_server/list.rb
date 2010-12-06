@@ -35,7 +35,6 @@ class ViewServer
   
       def run lists, list_func, *args
         # lists is always going to be :lists
-        debugger
         comp_function = ddoc[:lists][list_func]
         @start_response = {:headers => {}}
         comp_function = CouchDB::Sandbox.make_proc comp_function
