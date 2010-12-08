@@ -4,7 +4,7 @@ class ViewServer
       include StateProcessor
       include StateProcessor::StateProcessorWorker
       include DesignDocAccess
-      
+     
       def send(chunk)
         @chunks ||= []
         @chunks << chunk
@@ -13,7 +13,7 @@ class ViewServer
       
       def get_row()
         @fetched_row = true
-        __flush_chunks
+        flush
         if ! @started
           @started = true
         end
@@ -23,18 +23,22 @@ class ViewServer
         @start_response = response
       end
       
-      def __flush_chunks
-        response = if @started
+      def flush
+        result = if @started
           ["chunks", @chunks.dup]
         else
           ["start", @chunks.dup, @start_response]
         end
+        debugger
+        ## THIS SHOULD BE ANSWERING OR STOPPING THE RUN
         CouchDB.write response
         @chunks.clear
       end
+      private :flush
   
       def run lists, list_func, *args
         # lists is always going to be :lists
+        debugger
         comp_function = ddoc[:lists][list_func]
         @start_response = {:headers => {}}
         comp_function = CouchDB::Sandbox.make_proc comp_function

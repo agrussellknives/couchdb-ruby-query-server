@@ -11,6 +11,7 @@ class ViewServer
 
   # LET'S SPEAK SECTIONAL
   commands do
+    # we should move this into the protocol
     on_error do |e|
       error e.message
       error e.backtrace
@@ -37,28 +38,26 @@ class ViewServer
       end
       
     end
-   
+  
     on :ddoc do
       switch_state DesignDoc do
-        ## THINGS HERE ARE ONLY RUN ONCE THIS IS KINDA SURPRISING AND WEIRD
-        ## WHAT COULD WE DO ABOUT THAT. FIXING THIS INVOLVES REOPENING THE CLASS
-        ## EVERYTIME.
         commands do
 
           on :new do |doc_name, doc|
             return execute(:new_doc,doc_name,doc)
           end
 
-          on _! do |command, doc_body, req, design_doc|
+          on _! do |*,design_doc|
             
             # call on the worker before any action is taken
-            context! do
+            context do
               @ddoc = design_doc
             end
             
-            on :lists do |func,doc,req|
+            on :lists do 
               switch_state List do
                 commands do
+                  debugger
                   puts 'list commands entered'
 
                   on :list_row do |req|
@@ -80,7 +79,6 @@ class ViewServer
               end
             end
             
-            debugger
             switch_state Document do
               commands do
                 on :shows do |show_func, doc, req|
