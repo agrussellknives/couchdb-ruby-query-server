@@ -47,6 +47,7 @@ class ViewServer
             return execute(:new_doc,doc_name,doc)
           end
 
+          # should we put saved parameters at the beginning
           on _! do |*,design_doc|
             
             # call on the worker before any action is taken
@@ -57,22 +58,18 @@ class ViewServer
             on :lists do 
               switch_state List do
                 commands do
-                  debugger
-                  puts 'list commands entered'
-
-                  on :list_row do |req|
-                    puts 'list row'
-                  end
-
-                  on :list_end do
-                    puts 'list end'
-                  end
-                  
                   # for now we're using "pass" to mean - return this but don't switch the
                   # state back to our parent
                   on _! do |doc, req, list_func|
                     run list_func, doc, req do |result|
-                      answer result                        
+                      answer result do
+                        on :list_row do |req|
+                          puts 'list row'
+                        end
+                        on :list_end do
+                          puts 'list_end'
+                        end 
+                      end 
                     end
                   end
                 end

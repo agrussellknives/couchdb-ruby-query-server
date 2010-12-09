@@ -12,11 +12,9 @@ class ViewServer
       end
       
       def get_row()
-        @fetched_row = true
-        flush
-        if ! @started
-          @started = true
-        end
+        row = flush
+        @started = true unless @started
+        row
       end
       
       def start(response)
@@ -25,16 +23,20 @@ class ViewServer
       
       def flush
         result = if @started
-          ["chunks", @chunks.dup]
+          [:chunks, @chunks]
         else
-          ["start", @chunks.dup, @start_response]
+          [:start, @chunks, @start_response]
         end
         debugger
-        ## THIS SHOULD BE ANSWERING OR STOPPING THE RUN
-        CouchDB.write response
+        row = Fiber.yield result
         @chunks.clear
+        row 
       end
       private :flush
+
+      def resume(*args)
+        @fb.resume args 
+      end
   
       def run lists, list_func, *args
         # lists is always going to be :lists
@@ -42,7 +44,11 @@ class ViewServer
         comp_function = ddoc[:lists][list_func]
         @start_response = {:headers => {}}
         comp_function = CouchDB::Sandbox.make_proc comp_function
-        result = CouchDB::Runner.new(comp_function,self).run(*args)
+        
+        @fb = Fiber.new do
+          CouchDB::Runner.new(comp_function,self).run(*args)
+        end
+        result = @fb.resume
 
         if block_given?
           yield result
