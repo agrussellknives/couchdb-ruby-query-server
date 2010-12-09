@@ -63,8 +63,9 @@ class ViewServer
                   on _! do |doc, req, list_func|
                     run list_func, doc, req do |result|
                       answer result do
-                        on :list_row do |req|
-                          puts 'list row'
+                        on :list_row do |row|
+                          debugger
+                          resume_with row 
                         end
                         on :list_end do
                           puts 'list_end'

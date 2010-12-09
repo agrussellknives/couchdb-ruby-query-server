@@ -27,20 +27,18 @@ class ViewServer
         else
           [:start, @chunks, @start_response]
         end
-        debugger
         row = Fiber.yield result
         @chunks.clear
         row 
       end
       private :flush
 
-      def resume(*args)
-        @fb.resume args 
+      def resume_with(*args)
+        @fb.resume *args 
       end
   
       def run lists, list_func, *args
         # lists is always going to be :lists
-        debugger
         comp_function = ddoc[:lists][list_func]
         @start_response = {:headers => {}}
         comp_function = CouchDB::Sandbox.make_proc comp_function
