@@ -64,12 +64,20 @@ class ViewServer
                     run list_func, doc, req do |result|
                       answer result do
                         on :list_row do |row|
-                          debugger
-                          resume_with row 
+                          resume_with row do |res|
+                            if res.try(:first) == :end
+                              return res
+                            else
+                              answer res
+                            end
+                          end
                         end
                         on :list_end do
-                          puts 'list_end'
-                        end 
+                          return resume_with false
+                        end
+                        on do |cmd|
+                          return [:fatal, "list_error", "not a row #{cmd}"] 
+                        end
                       end 
                     end
                   end
@@ -83,7 +91,6 @@ class ViewServer
                   # execute an evaled function in the context of the current worker
                   # the exact semantics of "run" depend on the implementation of run
                   # within the worker object.  By default it just raises "NotImplementedError"
-                  # basically, thought, it will bass run :shows, *args
                   run show_func, doc, req do |result|
                     return result if result.try(:first) == :error
                     return ["resp", result.is_a?(String) ? {"body" => result} : result]

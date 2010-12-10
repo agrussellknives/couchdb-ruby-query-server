@@ -37,12 +37,8 @@ class ViewServer
   end
 
   def map(doc)
-    begin
-      FUNCTIONS.map do |func|
-        MapRunner.new(func).run(doc)
-      end
-    rescue ZeroDivisionError => e
-      debugger
+    FUNCTIONS.map do |func|
+      MapRunner.new(func).run(doc)
     end
   end
   
