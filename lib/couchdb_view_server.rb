@@ -6,16 +6,13 @@ class ViewServer
   puts 'processing new command from ViewServer'
   protocol CouchDBQueryServerProtocol
 
-  #on error should be here as well
-
+  on_error do |e|
+    error e.message
+    error e.backtrace
+  end
 
   # LET'S SPEAK SECTIONAL
   commands do
-    # we should move this into the protocol
-    on_error do |e|
-      error e.message
-      error e.backtrace
-    end
 
     # immediately returns after the first match
     return_after do
@@ -76,7 +73,7 @@ class ViewServer
                           return resume_with false
                         end
                         on do |cmd|
-                          return [:fatal, "list_error", "not a row #{cmd}"] 
+                          raise StateProcessorDoesNotRespond, [:list_error, "not a row #{cmd}"]
                         end
                       end 
                     end

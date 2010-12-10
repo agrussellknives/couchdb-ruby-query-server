@@ -1,6 +1,5 @@
 require_relative 'design_doc_access'
 
-
 module ListFunctions
   def send(chunk)
     @chunks << chunk
@@ -8,8 +7,9 @@ module ListFunctions
   end
       
   def get_row()
+    @fetched_row ||= true  
     row = flush
-    @started = true unless @started
+    @started ||= true
     row
   end
   
@@ -54,11 +54,14 @@ class ViewServer
         # of every executiong feels really dirty
         @start_response = {:headers => {}}
         @started = false
+        @fetched_row = false
         @chunks = []
         comp_function = CouchDB::Sandbox.make_proc comp_function
         
         @fb = Fiber.new do
-          @chunks << CouchDB::Runner.new(comp_function,self).run(*args) 
+          tail = CouchDB::Runner.new(comp_function,self).run(*args)
+          get_row unless @fetched_row
+          @chunks << tail if tail
           [:end, @chunks]
         end
         result = @fb.resume

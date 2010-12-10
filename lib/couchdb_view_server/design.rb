@@ -1,7 +1,6 @@
 require 'active_support/hash_with_indifferent_access'
 
 #TODO - make sectional into a separate gem so i don't have to do this
-require_relative '../../../couchdb-sectional/eventmachine/state_processor'
 require_relative 'design_doc_access'
  
 class ViewServer 
