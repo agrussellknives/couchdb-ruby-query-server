@@ -55,7 +55,7 @@ class ViewServer
             on :lists do 
               switch_state List do
                 commands do
-                  # for now we're using "pass" to mean - return this but don't switch the
+                  # for now we're using "pass/answer" to mean - return this but don't switch the
                   # state back to our parent
                   on _! do |doc, req, list_func|
                     run list_func, doc, req do |result|

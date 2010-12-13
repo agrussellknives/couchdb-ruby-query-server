@@ -51,7 +51,7 @@ class ViewServer
         # lists is always going to be :lists
         comp_function = ddoc[:lists][list_func]
         # resetting the context for the runner at the beginning
-        # of every executiong feels really dirty
+        # of every execution feels really dirty
         @start_response = {:headers => {}}
         @started = false
         @fetched_row = false
