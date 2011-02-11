@@ -3,7 +3,6 @@
 
 class ViewServer 
 
-  puts 'processing new command from ViewServer'
   protocol CouchDBQueryServerProtocol
 
   on_error do |e|
@@ -44,12 +43,15 @@ class ViewServer
             return execute(:new_doc,doc_name,doc)
           end
 
-          # should we put saved parameters at the beginning
+          # bind the first argument into design_doc
           on _! do |*,design_doc|
             
             # call on the worker before any action is taken
+            # implicit self is kinda weird in contexts.
+            # basically, if it's an = accessor call you'll have
+            # to use self.whatever=
             context do
-              @ddoc = design_doc
+              self.ddoc = design_doc
             end
             
             on :lists do 
